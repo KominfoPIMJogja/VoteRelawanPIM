@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 
-const ADMIN_CODE = "RESETPIM2026"
+const ADMIN_CODE = "RESETPIM2024"
 
 export async function POST(request: Request) {
   try {
@@ -13,6 +13,7 @@ export async function POST(request: Request) {
 
     const supabase = await createClient()
 
+    // Hapus semua votes
     const { error } = await supabase
       .from("votes")
       .delete()
@@ -23,7 +24,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Gagal mereset voting" }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, message: "Semua voting berhasil direset" })
+    // Catat waktu reset — semua device yang voted sebelum waktu ini boleh vote lagi
+    const resetTime = new Date().toISOString()
+    
+    // Simpan reset_time ke tabel settings (buat tabel ini di Supabase)
+    await supabase
+      .from("vote_settings")
+      .upsert({ key: "last_reset", value: resetTime })
+
+    return NextResponse.json({ 
+      success: true, 
+      message: "Semua voting berhasil direset",
+      resetTime 
+    })
   } catch (error) {
     console.error("Reset votes error:", error)
     return NextResponse.json({ error: "Terjadi kesalahan server" }, { status: 500 })
