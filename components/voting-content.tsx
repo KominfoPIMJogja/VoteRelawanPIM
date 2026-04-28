@@ -24,6 +24,7 @@ export function VotingContent({ staffByDivision }: VotingContentProps) {
   const [selectedStaffId, setSelectedStaffId] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const [isAuthorized, setIsAuthorized] = useState(false)
+  const [isCheckingStatus, setIsCheckingStatus] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
@@ -34,16 +35,40 @@ export function VotingContent({ staffByDivision }: VotingContentProps) {
     }
     setIsAuthorized(true)
 
-    const votedStaffId = localStorage.getItem("pim_voted_staff_id")
-    if (votedStaffId) {
-      setHasVoted(true)
-      setSelectedStaffId(votedStaffId)
+    // Cek status vote dari SERVER (bukan localStorage)
+    // sehingga ketika admin reset, semua device otomatis bisa vote lagi
+    const checkVoteStatus = async () => {
+      try {
+        const res = await fetch("/api/vote-status")
+        const data = await res.json()
+        if (data.hasVoted) {
+          setHasVoted(true)
+          setSelectedStaffId(data.staffId)
+        } else {
+          // Reset localStorage juga supaya sinkron
+          localStorage.removeItem("pim_voted_staff_id")
+          setHasVoted(false)
+          setSelectedStaffId(null)
+        }
+      } catch {
+        // fallback ke localStorage kalau API error
+        const votedStaffId = localStorage.getItem("pim_voted_staff_id")
+        if (votedStaffId) {
+          setHasVoted(true)
+          setSelectedStaffId(votedStaffId)
+        }
+      } finally {
+        setIsCheckingStatus(false)
+      }
     }
+
+    checkVoteStatus()
   }, [router])
 
   const handleLogout = () => {
     localStorage.removeItem("voting_access")
     localStorage.removeItem("access_code")
+    localStorage.removeItem("pim_voted_staff_id")
     router.push("/")
   }
 
@@ -56,9 +81,7 @@ export function VotingContent({ staffByDivision }: VotingContentProps) {
     try {
       const response = await fetch("/api/vote", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ staffId }),
       })
 
@@ -73,19 +96,22 @@ export function VotingContent({ staffByDivision }: VotingContentProps) {
       setSelectedStaffId(staffId)
       setMessage({ type: "success", text: "Vote berhasil! Terima kasih telah berpartisipasi." })
     } catch (error) {
-      setMessage({ 
-        type: "error", 
-        text: error instanceof Error ? error.message : "Terjadi kesalahan saat memberikan vote" 
+      setMessage({
+        type: "error",
+        text: error instanceof Error ? error.message : "Terjadi kesalahan saat memberikan vote",
       })
     } finally {
       setIsVoting(false)
     }
   }
 
-  if (!isAuthorized) {
+  if (!isAuthorized || isCheckingStatus) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#2E7D32] border-t-transparent" />
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#2E7D32] border-t-transparent" />
+          <p className="text-sm text-[#2E7D32]">Memeriksa status voting...</p>
+        </div>
       </div>
     )
   }
@@ -103,8 +129,8 @@ export function VotingContent({ staffByDivision }: VotingContentProps) {
             </Button>
           </Link>
         </div>
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           onClick={handleLogout}
           className="text-red-600 hover:bg-red-50 hover:text-red-700"
         >
@@ -116,9 +142,7 @@ export function VotingContent({ staffByDivision }: VotingContentProps) {
       {/* Message Alert */}
       {message && (
         <div className={`mb-8 flex items-center gap-3 rounded-lg p-4 ${
-          message.type === "success" 
-            ? "bg-[#2E7D32]/10 text-[#1B5E20]" 
-            : "bg-red-100 text-red-700"
+          message.type === "success" ? "bg-[#2E7D32]/10 text-[#1B5E20]" : "bg-red-100 text-red-700"
         }`}>
           {message.type === "success" ? (
             <CheckCircle className="h-5 w-5 flex-shrink-0" />
