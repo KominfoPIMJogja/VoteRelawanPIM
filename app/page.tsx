@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Lock, ArrowRight, Users, Award, Heart } from "lucide-react"
 
 // Kode unik untuk akses voting - bisa diganti sesuai kebutuhan
-const VALID_CODES = ["PIMAPRIL"]
+const VALID_CODES = ["PIM2024", "MUDAMENGABDI", "RELAWANJOGJA", "STAFFOFMONTH"]
 
 export default function LoginPage() {
   const [code, setCode] = useState("")
