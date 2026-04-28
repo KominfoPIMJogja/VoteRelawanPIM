@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
 
-const ADMIN_CODE = "RESETPIM2026"
+const ADMIN_CODE = process.env.ADMIN_CODE || "RESETPIM2024"
 
 export async function POST(request: NextRequest) {
   try {
