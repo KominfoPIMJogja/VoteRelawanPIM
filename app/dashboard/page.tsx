@@ -1,10 +1,91 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { DashboardContent } from "@/components/dashboard-content"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Lock } from "lucide-react"
 
-export const dynamic = "force-dynamic"
+const ADMIN_CODE = "RESETPIM2024"
+const DASHBOARD_CODES = ["PIM2024", "MUDAMENGABDI", "RELAWANJOGJA", "STAFFOFMONTH", "RESETPIM2024"]
 
 export default function DashboardPage() {
+  const [isAuthorized, setIsAuthorized] = useState(false)
+  const [code, setCode] = useState("")
+  const [error, setError] = useState("")
+  const [isChecking, setIsChecking] = useState(true)
+
+  useEffect(() => {
+    // Cek apakah sudah login voting atau sudah punya akses dashboard
+    const hasVotingAccess = localStorage.getItem("voting_access")
+    const hasDashboardAccess = localStorage.getItem("dashboard_access")
+    if (hasVotingAccess || hasDashboardAccess) {
+      setIsAuthorized(true)
+    }
+    setIsChecking(false)
+  }, [])
+
+  const handleLogin = () => {
+    const input = code.trim().toUpperCase()
+    if (DASHBOARD_CODES.includes(input)) {
+      localStorage.setItem("dashboard_access", "true")
+      setIsAuthorized(true)
+      setError("")
+    } else {
+      setError("Kode tidak valid")
+    }
+  }
+
+  if (isChecking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F5DC]">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#2E7D32] border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (!isAuthorized) {
+    return (
+      <div className="flex min-h-screen flex-col bg-[#F5F5DC]">
+        <Header />
+        <main className="flex flex-1 items-center justify-center px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-lg">
+            <div className="mb-6 flex justify-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#1B5E20]/10">
+                <Lock className="h-8 w-8 text-[#1B5E20]" />
+              </div>
+            </div>
+            <h1 className="mb-2 text-center text-2xl font-bold text-[#1B5E20]">Dashboard</h1>
+            <p className="mb-6 text-center text-sm text-gray-500">
+              Masukkan kode akses untuk melihat hasil voting
+            </p>
+            <div className="space-y-3">
+              <Input
+                type="password"
+                placeholder="Masukkan kode akses..."
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+                className="text-center uppercase tracking-widest"
+              />
+              {error && <p className="text-center text-sm text-red-600">{error}</p>}
+              <Button
+                onClick={handleLogin}
+                className="w-full bg-[#1B5E20] text-white hover:bg-[#2E7D32]"
+              >
+                Masuk
+              </Button>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
   return (
     <div className="flex min-h-screen flex-col bg-[#F5F5DC]">
       <Header />
