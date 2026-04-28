@@ -1,31 +1,12 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
-import {
-  Trophy, Medal, Award, User, Users, TrendingUp, RefreshCw,
-  AlertTriangle, Plus, Trash2, Upload, CheckCircle, Camera,
-  Wifi, WifiOff, Settings
-} from "lucide-react"
+import { useState, useEffect, useCallback } from "react"
+import { Trophy, Medal, Award, User, Users, TrendingUp, RefreshCw, AlertTriangle, CheckCircle, Wifi, WifiOff, Settings } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { createClient } from "@/lib/supabase/client"
 
 interface VoteResult {
@@ -45,7 +26,7 @@ const divisionColors: Record<string, string> = {
 }
 
 const DIVISIONS = ["BPH", "MSDMO", "Sosial", "Kominfo", "Relawan"]
-const ADMIN_CODE_KEY = "RESETPIM2024"
+const ADMIN_CODE = "RESETPIM2024"
 
 export function DashboardContent() {
   const [results, setResults] = useState<VoteResult[]>([])
@@ -63,28 +44,6 @@ export function DashboardContent() {
   const [isResetting, setIsResetting] = useState(false)
   const [resetMessage, setResetMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false)
-
-  // Add member
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [newMemberName, setNewMemberName] = useState("")
-  const [newMemberDivision, setNewMemberDivision] = useState("")
-  const [isAdding, setIsAdding] = useState(false)
-  const [addMessage, setAddMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
-
-  // Delete
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [staffToDelete, setStaffToDelete] = useState<VoteResult | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [deleteMessage, setDeleteMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
-
-  // Photo
-  const [isPhotoDialogOpen, setIsPhotoDialogOpen] = useState(false)
-  const [staffForPhoto, setStaffForPhoto] = useState<VoteResult | null>(null)
-  const [photoFile, setPhotoFile] = useState<File | null>(null)
-  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
-  const [isUploading, setIsUploading] = useState(false)
-  const [photoMessage, setPhotoMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchData = useCallback(async () => {
     const supabase = createClient()
@@ -131,7 +90,7 @@ export function DashboardContent() {
   }))
 
   const handleAdminVerify = () => {
-    if (adminCode.trim().toUpperCase() === ADMIN_CODE_KEY) {
+    if (adminCode.trim().toUpperCase() === ADMIN_CODE) {
       setIsAdminVerified(true)
       setAdminError("")
     } else {
@@ -159,90 +118,6 @@ export function DashboardContent() {
       setResetMessage({ type: "error", text: "Terjadi kesalahan. Coba lagi." })
     }
     setIsResetting(false)
-  }
-
-  const handleAddMember = async () => {
-    if (!newMemberName.trim() || !newMemberDivision) return
-    setIsAdding(true)
-    setAddMessage(null)
-    try {
-      const res = await fetch("/api/admin/staff", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adminCode, name: newMemberName, division: newMemberDivision }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        setAddMessage({ type: "success", text: "Anggota berhasil ditambahkan!" })
-        setNewMemberName("")
-        setNewMemberDivision("")
-        setTimeout(() => { setIsAddDialogOpen(false); setAddMessage(null) }, 1200)
-      } else {
-        setAddMessage({ type: "error", text: data.error })
-      }
-    } catch {
-      setAddMessage({ type: "error", text: "Gagal menambahkan anggota." })
-    }
-    setIsAdding(false)
-  }
-
-  const handleDeleteMember = async () => {
-    if (!staffToDelete) return
-    setIsDeleting(true)
-    setDeleteMessage(null)
-    try {
-      const res = await fetch("/api/admin/staff", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ adminCode, staffId: staffToDelete.id }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        setDeleteMessage({ type: "success", text: "Anggota berhasil dihapus!" })
-        setTimeout(() => { setIsDeleteDialogOpen(false); setStaffToDelete(null); setDeleteMessage(null) }, 1200)
-      } else {
-        setDeleteMessage({ type: "error", text: data.error })
-      }
-    } catch {
-      setDeleteMessage({ type: "error", text: "Gagal menghapus anggota." })
-    }
-    setIsDeleting(false)
-  }
-
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setPhotoFile(file)
-    setPhotoPreview(URL.createObjectURL(file))
-  }
-
-  const handlePhotoUpload = async () => {
-    if (!photoFile || !staffForPhoto) return
-    setIsUploading(true)
-    setPhotoMessage(null)
-    try {
-      const formData = new FormData()
-      formData.append("adminCode", adminCode)
-      formData.append("staffId", staffForPhoto.id)
-      formData.append("photo", photoFile)
-      const res = await fetch("/api/admin/upload-photo", { method: "POST", body: formData })
-      const data = await res.json()
-      if (res.ok) {
-        setPhotoMessage({ type: "success", text: "Foto berhasil diupload!" })
-        setTimeout(() => {
-          setIsPhotoDialogOpen(false)
-          setPhotoFile(null)
-          setPhotoPreview(null)
-          setStaffForPhoto(null)
-          setPhotoMessage(null)
-        }, 1200)
-      } else {
-        setPhotoMessage({ type: "error", text: data.error })
-      }
-    } catch {
-      setPhotoMessage({ type: "error", text: "Gagal mengupload foto." })
-    }
-    setIsUploading(false)
   }
 
   if (isLoading) {
@@ -307,7 +182,7 @@ export function DashboardContent() {
         </Card>
       </div>
 
-      {/* Admin Panel */}
+      {/* Admin Panel - Reset Only */}
       <Card className="border-[#F9A825]/30 bg-[#F9A825]/5">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-[#1B5E20]">
@@ -319,7 +194,7 @@ export function DashboardContent() {
           {!isAdminVerified ? (
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
               <div className="flex-1">
-                <p className="mb-2 text-sm text-[#2E7D32]">Masukkan kode admin untuk mengelola anggota dan voting:</p>
+                <p className="mb-2 text-sm text-[#2E7D32]">Masukkan kode admin untuk mereset voting:</p>
                 <Input
                   type="password"
                   placeholder="Kode admin..."
@@ -338,98 +213,38 @@ export function DashboardContent() {
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-green-600">
                 <CheckCircle className="h-4 w-4" />
-                <span className="text-sm font-medium">Admin terverifikasi — fitur manajemen aktif</span>
+                <span className="text-sm font-medium">Admin terverifikasi</span>
               </div>
-              <div className="flex flex-wrap gap-3">
-                {/* Add Member */}
-                <Dialog open={isAddDialogOpen} onOpenChange={(o) => { setIsAddDialogOpen(o); if (!o) setAddMessage(null) }}>
-                  <DialogTrigger asChild>
-                    <Button className="bg-[#2E7D32] text-white hover:bg-[#1B5E20]">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Tambah Anggota
+              <Dialog open={isResetDialogOpen} onOpenChange={(o) => { setIsResetDialogOpen(o); if (!o) setResetMessage(null) }}>
+                <DialogTrigger asChild>
+                  <Button variant="destructive">
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Reset Voting
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-red-600">
+                      <AlertTriangle className="h-5 w-5" />
+                      Reset Semua Voting
+                    </DialogTitle>
+                    <DialogDescription>
+                      Tindakan ini akan menghapus <strong>semua data voting</strong> dan tidak dapat dibatalkan. Semua device akan bisa vote kembali.
+                    </DialogDescription>
+                  </DialogHeader>
+                  {resetMessage && (
+                    <p className={`text-sm text-center py-2 ${resetMessage.type === "success" ? "text-green-600" : "text-red-600"}`}>
+                      {resetMessage.text}
+                    </p>
+                  )}
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsResetDialogOpen(false)}>Batal</Button>
+                    <Button variant="destructive" onClick={handleReset} disabled={isResetting}>
+                      {isResetting ? "Mereset..." : "Ya, Reset Semua"}
                     </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle className="text-[#1B5E20]">Tambah Anggota Baru</DialogTitle>
-                      <DialogDescription>Masukkan data anggota yang akan ditambahkan sebagai kandidat voting.</DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4 py-4">
-                      <div>
-                        <label className="mb-1 block text-sm font-medium text-[#1B5E20]">Nama Lengkap</label>
-                        <Input
-                          placeholder="Nama anggota..."
-                          value={newMemberName}
-                          onChange={(e) => setNewMemberName(e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-sm font-medium text-[#1B5E20]">Divisi</label>
-                        <Select value={newMemberDivision} onValueChange={setNewMemberDivision}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Pilih divisi..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {DIVISIONS.map((d) => (
-                              <SelectItem key={d} value={d}>{d}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      {addMessage && (
-                        <p className={`text-sm ${addMessage.type === "success" ? "text-green-600" : "text-red-600"}`}>
-                          {addMessage.text}
-                        </p>
-                      )}
-                    </div>
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Batal</Button>
-                      <Button
-                        onClick={handleAddMember}
-                        disabled={!newMemberName.trim() || !newMemberDivision || isAdding}
-                        className="bg-[#2E7D32] text-white hover:bg-[#1B5E20]"
-                      >
-                        {isAdding ? "Menyimpan..." : "Tambah Anggota"}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-
-                {/* Reset Voting */}
-                <Dialog open={isResetDialogOpen} onOpenChange={(o) => { setIsResetDialogOpen(o); if (!o) setResetMessage(null) }}>
-                  <DialogTrigger asChild>
-                    <Button variant="destructive">
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Reset Voting
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle className="flex items-center gap-2 text-red-600">
-                        <AlertTriangle className="h-5 w-5" />
-                        Reset Semua Voting
-                      </DialogTitle>
-                      <DialogDescription>
-                        Tindakan ini akan menghapus <strong>semua data voting</strong> dan tidak dapat dibatalkan.
-                      </DialogDescription>
-                    </DialogHeader>
-                    {resetMessage && (
-                      <p className={`text-sm text-center py-2 ${resetMessage.type === "success" ? "text-green-600" : "text-red-600"}`}>
-                        {resetMessage.text}
-                      </p>
-                    )}
-                    <DialogFooter>
-                      <Button variant="outline" onClick={() => setIsResetDialogOpen(false)}>Batal</Button>
-                      <Button variant="destructive" onClick={handleReset} disabled={isResetting}>
-                        {isResetting ? "Mereset..." : "Ya, Reset Semua"}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
-              <p className="text-xs text-gray-500">
-                💡 Untuk menghapus atau mengganti foto anggota, gunakan ikon di baris tabel anggota di bawah.
-              </p>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           )}
         </CardContent>
@@ -511,7 +326,7 @@ export function DashboardContent() {
         </div>
       </div>
 
-      {/* All Results */}
+      {/* All Results - no admin actions */}
       <div>
         <h2 className="mb-4 text-xl font-bold text-[#1B5E20]">Semua Hasil Voting</h2>
         <Tabs defaultValue="all" className="w-full">
@@ -561,28 +376,6 @@ export function DashboardContent() {
                         <p className="text-xl font-bold text-[#1B5E20]">{result.vote_count}</p>
                         <p className="text-xs text-[#2E7D32]/70">{percentage.toFixed(1)}%</p>
                       </div>
-                      {isAdminVerified && (
-                        <div className="flex flex-shrink-0 gap-1">
-                          <Button variant="ghost" size="icon" title="Ganti foto"
-                            className="h-8 w-8 text-blue-500 hover:bg-blue-50"
-                            onClick={() => {
-                              setStaffForPhoto(result)
-                              setPhotoFile(null); setPhotoPreview(null); setPhotoMessage(null)
-                              setIsPhotoDialogOpen(true)
-                            }}>
-                            <Camera className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" title="Hapus anggota"
-                            className="h-8 w-8 text-red-500 hover:bg-red-50"
-                            onClick={() => {
-                              setStaffToDelete(result)
-                              setDeleteMessage(null)
-                              setIsDeleteDialogOpen(true)
-                            }}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
                     </CardContent>
                   </Card>
                 )
@@ -591,75 +384,6 @@ export function DashboardContent() {
           </TabsContent>
         </Tabs>
       </div>
-
-      {/* Delete Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={(o) => { setIsDeleteDialogOpen(o); if (!o) { setStaffToDelete(null); setDeleteMessage(null) } }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
-              <Trash2 className="h-5 w-5" />Hapus Anggota
-            </DialogTitle>
-            <DialogDescription>
-              Yakin ingin menghapus <strong>{staffToDelete?.name}</strong>? Semua vote untuk anggota ini juga akan ikut terhapus.
-            </DialogDescription>
-          </DialogHeader>
-          {deleteMessage && (
-            <p className={`text-sm text-center ${deleteMessage.type === "success" ? "text-green-600" : "text-red-600"}`}>
-              {deleteMessage.text}
-            </p>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Batal</Button>
-            <Button variant="destructive" onClick={handleDeleteMember} disabled={isDeleting}>
-              {isDeleting ? "Menghapus..." : "Hapus Anggota"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Photo Dialog */}
-      <Dialog open={isPhotoDialogOpen} onOpenChange={(o) => {
-        setIsPhotoDialogOpen(o)
-        if (!o) { setPhotoFile(null); setPhotoPreview(null); setStaffForPhoto(null); setPhotoMessage(null) }
-      }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-[#1B5E20]">
-              <Camera className="h-5 w-5" />Ganti Foto — {staffForPhoto?.name}
-            </DialogTitle>
-            <DialogDescription>Upload foto baru. Format JPG/PNG, maksimal 2MB.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="flex justify-center">
-              <div className="relative h-32 w-32 overflow-hidden rounded-full border-4 border-[#2E7D32]/30 bg-[#F5F5DC]">
-                {photoPreview
-                  ? <img src={photoPreview} alt="Preview" className="h-full w-full object-cover" />
-                  : staffForPhoto?.photo_url
-                  ? <img src={staffForPhoto.photo_url} alt={staffForPhoto.name} className="h-full w-full object-cover" />
-                  : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[#2E7D32] to-[#1B5E20]"><User className="h-14 w-14 text-[#F5F5DC]" /></div>
-                }
-              </div>
-            </div>
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoSelect} />
-            <Button variant="outline" className="w-full border-[#2E7D32] text-[#2E7D32]" onClick={() => fileInputRef.current?.click()}>
-              <Upload className="mr-2 h-4 w-4" />
-              {photoFile ? photoFile.name : "Pilih Foto dari Perangkat"}
-            </Button>
-            {photoMessage && (
-              <p className={`text-sm text-center ${photoMessage.type === "success" ? "text-green-600" : "text-red-600"}`}>
-                {photoMessage.text}
-              </p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPhotoDialogOpen(false)}>Batal</Button>
-            <Button onClick={handlePhotoUpload} disabled={!photoFile || isUploading}
-              className="bg-[#2E7D32] text-white hover:bg-[#1B5E20]">
-              {isUploading ? "Mengupload..." : "Upload Foto"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
