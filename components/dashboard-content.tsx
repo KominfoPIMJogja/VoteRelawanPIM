@@ -45,7 +45,7 @@ const divisionColors: Record<string, string> = {
 }
 
 const DIVISIONS = ["BPH", "MSDMO", "Sosial", "Kominfo", "Relawan"]
-const ADMIN_CODE_KEY = process.env.NEXT_PUBLIC_ADMIN_CODE || "RESETPIM2026"
+const ADMIN_CODE_KEY = "RESETPIM2024"
 
 export function DashboardContent() {
   const [results, setResults] = useState<VoteResult[]>([])
